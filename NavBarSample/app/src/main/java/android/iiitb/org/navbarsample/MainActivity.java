@@ -21,12 +21,18 @@ import android.widget.Toast;
 
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.parse.Parse;
+import com.parse.ParseException;
+import com.parse.ParseObject;
+import com.parse.ParseQuery;
+
+import java.util.List;
 
 
 public class MainActivity extends ActionBarActivity
@@ -173,26 +179,10 @@ public class MainActivity extends ActionBarActivity
         }
 
     }
-
-    private void handleNewLocation(Location location) {
-        Log.d(TAG, location.toString());
-        double currentLatitude = location.getLatitude();
-        double currentLongitude = location.getLongitude();
-        storeLocationInCloud(currentLatitude,currentLongitude);
-
-        LatLng latLng = new LatLng(currentLatitude, currentLongitude);
+*/
 
 
-        options = new MarkerOptions().position(latLng).title("I am here!");
-        if(marker!=null){
-            marker.remove();
-        }
-        marker = mMap.addMarker(options);
-        //mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15));
-        mMap.animateCamera(CameraUpdateFactory.zoomTo(11), 2000, null);
-
-    }
+    /*
 
     private void storeLocationInCloud(double currentLatitude, double currentLongitude) {
 
@@ -237,7 +227,30 @@ public class MainActivity extends ActionBarActivity
         //mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(iiitb, 15));
         //mMap.animateCamera(CameraUpdateFactory.zoomTo(11), 2000, null);
         Log.d("MyApp","In setUpMap");
-        mMap.addMarker(new MarkerOptions().position(new LatLng(0, 0)).title("Marker"));
+        //mMap.addMarker(new MarkerOptions().position(new LatLng(0, 0)).title("Marker"));
+        /*mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(iiitb, 15));
+        mMap.animateCamera(CameraUpdateFactory.zoomTo(11), 2000, null);*/
+
+        //get the current location from cloud here .
+        ParseQuery<ParseObject> query = ParseQuery.getQuery("vehiclelocation");
+        List<ParseObject> vehicleloc;
+        ParseObject loc = new ParseObject("vehiclelocation");
+        double latitude,longitude;
+        query.whereEqualTo("vehicleid",1);
+        try {
+            vehicleloc = query.find();
+            loc = vehicleloc.get(0);
+            latitude= loc.getDouble("latitude");
+            longitude = loc.getDouble("longitude");
+            LatLng latLng = new LatLng(latitude, longitude);
+            marker = mMap.addMarker(new MarkerOptions().position(latLng).title("MyLocation"));
+            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15));
+            mMap.animateCamera(CameraUpdateFactory.zoomTo(11), 2000, null);
+
+
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -358,15 +371,33 @@ public class MainActivity extends ActionBarActivity
     private BroadcastReceiver broadcastreceiver  = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+
             Bundle loc = intent.getBundleExtra("LOC");
             double latitude = loc.getDouble("LATITUDE");
             double longitude = loc.getDouble("LONGITUDE");
             Log.d("Myapp",String.valueOf(latitude));
             Toast.makeText(MainActivity.this,
                     "Triggered by Service!\n"
-                            + "Data passed: " + String.valueOf(latitude) + String.valueOf(longitude),
+                            + "Data passed: Latitude : " + String.valueOf(latitude) + " Longitude : "+String.valueOf(longitude),
                     Toast.LENGTH_LONG).show();
+
+            handleNewLocation(latitude,longitude);
         }
     };
+
+    private void handleNewLocation(double currentLatitude,double currentLongitude) {
+
+
+        //storeLocationInCloud(currentLatitude,currentLongitude);
+
+        LatLng latLng = new LatLng(currentLatitude, currentLongitude);
+
+
+        options = new MarkerOptions().position(latLng).title("I am here!");
+        if(marker!=null){
+            marker.remove();
+        }
+        marker = mMap.addMarker(options);
+    }
 
 }

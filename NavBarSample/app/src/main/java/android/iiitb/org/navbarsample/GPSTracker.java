@@ -20,7 +20,11 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.parse.ParseException;
 import com.parse.ParseObject;
+import com.parse.ParseQuery;
+
+import java.util.List;
 
 
 /**
@@ -61,18 +65,17 @@ public class GPSTracker extends Service implements LocationListener {
 
 
 
-
     public GPSTracker() {
         Log.d("MyApp","In const with context");
 
-        getLocation();
+
     }
 
     public Location getLocation() {
         Log.d("MyApp","In getLocation");
 
         try {
-            locationManager = (LocationManager) GPSTracker.this
+            locationManager = (LocationManager) getApplicationContext()
                     .getSystemService(LOCATION_SERVICE);
 
             // getting GPS status
@@ -100,6 +103,7 @@ public class GPSTracker extends Service implements LocationListener {
                         if (location != null) {
                             latitude = location.getLatitude();
                             longitude = location.getLongitude();
+                            //Toast.makeText(getApplicationContext(),"In service : Latitude : "+latitude+" Longitude : "+longitude,Toast.LENGTH_LONG).show();
                             Log.d("MyApp", "Network");
                         }
                     }
@@ -121,7 +125,7 @@ public class GPSTracker extends Service implements LocationListener {
                                 longitude = location.getLongitude();
                                 Log.d("MyApp", "GPS Enabled");
 
-
+                           //     Toast.makeText(getApplicationContext(),"In service : Latitude : "+latitude+" Longitude : "+longitude,Toast.LENGTH_LONG).show();
                             }
                         }
                     }
@@ -183,11 +187,30 @@ public class GPSTracker extends Service implements LocationListener {
         //Get vehicle id from cloud
         int vehicleid =1;
 
-        ParseObject gameScore = new ParseObject("vehiclelocation");
+        /*ParseObject gameScore = new ParseObject("vehiclelocation");
         gameScore.put("vehicleid",1);
         gameScore.put("latitude", currentLatitude);
         gameScore.put("longitude", currentLongitude);
-        gameScore.saveInBackground();
+        gameScore.saveInBackground();*/
+
+
+
+        ParseQuery<ParseObject> query = ParseQuery.getQuery("vehiclelocation");
+        List<ParseObject> vehicleloc;
+        ParseObject loc;// = new ParseObject("vehiclelocation");
+        double latitude,longitude;
+        query.whereEqualTo("vehicleid",1);
+        try {
+            vehicleloc = query.find();
+            loc = vehicleloc.get(0);
+            loc.put("latitude", currentLatitude);
+            loc.put("longitude", currentLongitude);
+            loc.saveInBackground();
+
+
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -266,6 +289,8 @@ public class GPSTracker extends Service implements LocationListener {
 
     @Override
     public void onLocationChanged(Location location) {
+        latitude = location.getLatitude();
+        longitude = location.getLongitude();
     }
 
     @Override
@@ -296,8 +321,10 @@ public class GPSTracker extends Service implements LocationListener {
     @Override
     public void onStart(Intent intent, int startId) {
         Log.d("MyApp","In service onstart");
+        //Call getLocation on onCreate()
+        getLocation();
         handler.removeCallbacks(sendUpdatesToUI);
-        handler.postDelayed(sendUpdatesToUI, 1000); // 1 second
+        handler.postDelayed(sendUpdatesToUI, 10000); // 10 second
 
     }
 
@@ -317,6 +344,8 @@ public class GPSTracker extends Service implements LocationListener {
 
             sendBroadcast(intent);
 
+            //Call getLocation again to fetch next location update, thus, repeatedly calling getLocation
+            getLocation();
             handler.postDelayed(this, 10000); // 10 seconds
         }
     };
